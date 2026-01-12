@@ -4,77 +4,106 @@
 <meta charset="UTF-8">
 <title>CleanMedia AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+
 <style>
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
-    text-align: center;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+  margin:0;
 }
 header {
-    padding: 50px 20px;
-    background: #020617;
+  padding:30px;
 }
-h1 {
-    font-size: 2.8em;
+canvas {
+  border:2px solid #38bdf8;
+  margin-top:20px;
+  max-width:95%;
 }
-p {
-    color: #cbd5f5;
+button {
+  padding:15px 30px;
+  background:#38bdf8;
+  border:none;
+  font-size:16px;
+  border-radius:8px;
+  cursor:pointer;
+  margin:10px;
 }
-.buttons {
-    margin-top: 30px;
-}
-a.button {
-    display: inline-block;
-    margin: 15px;
-    padding: 18px 40px;
-    background: #38bdf8;
-    color: black;
-    text-decoration: none;
-    font-size: 18px;
-    border-radius: 10px;
-}
-a.button:hover {
-    background: #0ea5e9;
-}
-section {
-    padding: 40px 20px;
+input {
+  margin:15px;
 }
 </style>
 </head>
+
 <body>
 
 <header>
 <h1>CleanMedia AI</h1>
-<p>Remova marcas d’água de fotos e vídeos online</p>
-
-<div class="buttons">
-<a class="button" href="https://huggingface.co/spaces/tomg-group-umd/watermark-removal" target="_blank">
-Remover marca da imagem
-</a>
-
-<a class="button" href="https://www.apowersoft.com/online-watermark-remover" target="_blank">
-Remover marca do vídeo
-</a>
-</div>
+<p>Remova marcas d’água de imagens</p>
+<input type="file" id="upload" accept="image/*">
+<br>
+<button onclick="enablePaint()">Marcar a marca d'água</button>
+<button onclick="removeWatermark()">Remover</button>
+<button onclick="download()">Baixar</button>
 </header>
 
-<section>
-<h2>Como funciona</h2>
-<p>1. Clique no botão</p>
-<p>2. Envie seu arquivo</p>
-<p>3. A IA remove a marca</p>
-<p>4. Baixe o arquivo limpo</p>
-</section>
+<canvas id="canvas"></canvas>
 
-<section>
-<h2>Vantagens</h2>
-<p>✔ 100% online</p>
-<p>✔ Funciona no celular</p>
-<p>✔ Grátis</p>
-<p>✔ Sem instalar nada</p>
-</section>
+<script>
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let painting = false;
+let img = new Image();
+
+document.getElementById("upload").addEventListener("change", function(e){
+    let file = e.target.files[0];
+    let reader = new FileReader();
+    reader.onload = function(ev){
+        img.onload = function(){
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img,0,0);
+        }
+        img.src = ev.target.result;
+    }
+    reader.readAsDataURL(file);
+});
+
+function enablePaint(){
+    canvas.onmousedown = ()=> painting=true;
+    canvas.onmouseup = ()=> painting=false;
+    canvas.onmousemove = paint;
+}
+
+function paint(e){
+    if(!painting) return;
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.arc(e.offsetX,e.offsetY,10,0,Math.PI*2);
+    ctx.fill();
+}
+
+function removeWatermark(){
+    let src = cv.imread(canvas);
+    let mask = new cv.Mat();
+    cv.cvtColor(src, mask, cv.COLOR_RGBA2GRAY);
+    cv.threshold(mask, mask, 250, 255, cv.THRESH_BINARY);
+    let dst = new cv.Mat();
+    cv.inpaint(src, mask, dst, 10, cv.INPAINT_TELEA);
+    cv.imshow(canvas, dst);
+    src.delete(); mask.delete(); dst.delete();
+}
+
+function download(){
+    let link = document.createElement("a");
+    link.download = "cleanmedia.png";
+    link.href = canvas.toDataURL();
+    link.click();
+}
+</script>
 
 </body>
 </html>
